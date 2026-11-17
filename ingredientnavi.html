@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>食材使い切りナビ</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f6f7f2;--card:#fff;--text:#243024;--sub:#6b786b;--line:#e1e6dc;--accent:#2f8f4e;--accent-t:#fff;
+--red:#d64545;--red-bg:#fde8e8;--ora:#c76a00;--ora-bg:#fff0dc;--grn:#2f8f4e;--grn-bg:#e5f4e9}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141a15;--card:#1d261f;--text:#e8efe8;--sub:#9aa89a;--line:#2d3a2f;--accent:#4cb86e;--accent-t:#0f1a12;--red:#ff8b8b;--red-bg:#3d2020;--ora:#ffb259;--ora-bg:#3b2c14;--grn:#6fd18d;--grn-bg:#1c3324}}
+:root[data-theme="dark"]{--bg:#141a15;--card:#1d261f;--text:#e8efe8;--sub:#9aa89a;--line:#2d3a2f;--accent:#4cb86e;--accent-t:#0f1a12;--red:#ff8b8b;--red-bg:#3d2020;--ora:#ffb259;--ora-bg:#3b2c14;--grn:#6fd18d;--grn-bg:#1c3324}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;line-height:1.6}
+main{max-width:560px;margin:0 auto;padding:16px}
+h1{font-size:1.3rem;margin:4px 0 12px}
+h2{font-size:1rem;margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.alert{border-radius:12px;padding:12px 14px;margin-bottom:14px;font-weight:600;background:var(--grn-bg);color:var(--grn)}
+.alert.warn{background:var(--ora-bg);color:var(--ora)}
+.alert.bad{background:var(--red-bg);color:var(--red)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+input,select{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;min-width:0}
+.f2{flex:2 1 140px}.f1{flex:1 1 120px}
+button{font:inherit;border:0;border-radius:10px;padding:10px 14px;background:var(--accent);color:var(--accent-t);font-weight:600;cursor:pointer}
+button.ghost{background:transparent;color:var(--sub);border:1px solid var(--line);padding:6px 10px;font-weight:500;font-size:.85rem}
+.item{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.info{flex:1;min-width:0}
+.n{font-weight:600;word-break:break-all}
+.d{font-size:.8rem;color:var(--sub)}
+.badge{font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap}
+.b-bad{background:var(--red-bg);color:var(--red)}.b-warn{background:var(--ora-bg);color:var(--ora)}.b-ok{background:var(--grn-bg);color:var(--grn)}
+.b-exp,.alert.exp{background:#f0e6fa;color:#7b3fb8}
+.alert{white-space:pre-line}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .b-exp,:root:not([data-theme="light"]) .alert.exp{background:#2f2142;color:#c9a0ff}}
+:root[data-theme="dark"] .b-exp,:root[data-theme="dark"] .alert.exp{background:#2f2142;color:#c9a0ff}
+.type{font-size:.72rem;border:1px solid var(--line);border-radius:6px;padding:0 5px;margin-right:4px;color:var(--sub);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{border:1px solid var(--line);border-radius:99px;padding:4px 10px;font-size:.85rem;background:var(--bg);color:var(--text);cursor:pointer;font-weight:500}
+.chip.on{background:var(--accent);color:var(--accent-t);border-color:var(--accent)}
+.empty,.note{color:var(--sub);font-size:.85rem}
+.note{margin:6px 0 0}
+.rec{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:10px}
+.rec .t{font-weight:700}
+.use{color:var(--grn);font-size:.88rem}.miss{color:var(--sub);font-size:.85rem}
+details summary{cursor:pointer;font-weight:600;margin:4px 0}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:4px 0 12px}.top h1{margin:0}
+.shunbtn{background:var(--grn-bg);color:var(--grn);border:1px solid var(--line);padding:6px 12px;border-radius:99px;font-size:.9rem}
+.tabs{display:flex;gap:8px;margin:12px 0}.tab{flex:1;background:var(--card);color:var(--text);border:1px solid var(--line);padding:8px 0}.tab.on{background:var(--accent);color:var(--accent-t);border-color:var(--accent)}
+.hs{position:relative;display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x proximity;padding:8px 4px 14px;-webkit-overflow-scrolling:touch}
+.hs.dragging{scroll-snap-type:none}
+.sc{position:relative;min-height:var(--ch,0px);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.sc.lift{z-index:5;box-shadow:0 10px 24px rgba(0,0,0,.3)}
+.sc.add{display:flex;align-items:center;justify-content:center;background:transparent;border:2px dashed var(--line);color:var(--sub);font-size:1.5rem;font-weight:400}
+.sc .del{position:absolute;top:2px;right:2px;background:transparent;color:var(--sub);padding:2px 8px;font-size:1.1rem;font-weight:400;line-height:1}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.bx{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;width:100%;max-width:420px}
+.bx input{width:100%;margin-bottom:8px}
+.sc{flex:0 0 150px;scroll-snap-align:start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+.sc .e{font-size:2rem;line-height:1}.sc .nm{font-weight:700;margin-top:6px}.sc .mo{font-size:.78rem;color:var(--grn);font-weight:600}.sc .ds{font-size:.82rem;color:var(--sub);margin-top:4px}
+h3.cat{font-size:.95rem;margin:14px 0 6px}
+.tag{display:inline-block;font-size:.7rem;background:var(--grn-bg);color:var(--grn);border-radius:6px;padding:0 6px;margin-left:6px}
+</style>
+</head>
+<body>
+<main>
+<div id="home">
+<div class="top"><h1>🥬 食材使い切りナビ</h1><button id="goShun" class="shunbtn" type="button">旬情報</button></div>
+<div id="alert" class="alert"></div>
+
+<section class="card">
+<h2>食材を登録</h2>
+<div class="row">
+<input id="name" class="f2" placeholder="食材名（例：豆腐）" maxlength="30">
+<select id="type" class="f1" aria-label="期限の種類"><option>消費期限</option><option>賞味期限</option></select>
+</div>
+<div class="row" style="margin-top:8px">
+<input id="date" type="date" aria-label="期限日" style="flex:8 1 0;min-width:120px">
+<input id="qty" placeholder="量（任意）" maxlength="15" style="flex:7 1 0;min-width:80px">
+<button id="add">追加</button>
+</div>
+<p class="note">消費期限：傷みやすい食品の「安全に食べられる期限」。賞味期限：「おいしく食べられる期限」で、過ぎてもすぐ食べられなくなるわけではありません。</p>
+</section>
+
+<section class="card">
+<h2>冷蔵庫の中身（期限が近い順）</h2>
+<div id="list"></div>
+</section>
+
+<section class="card">
+<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0">🍳 メニュー提案</h2><button id="reset" class="ghost" type="button">リセット</button></div>
+<p class="note" style="margin:0 0 6px">タップで使いたい食材を選ぶか、直接入力。空のままなら期限が近い食材から探します。</p>
+<div id="chips" class="chips"></div>
+<div class="row">
+<input id="want" class="f2" placeholder="例：豆腐　ほうれん草">
+<button id="ask">提案する</button>
+</div>
+<div id="out"></div>
+</section>
+
+<section class="card">
+<h2>📖 メニューを登録</h2>
+<div class="row">
+<input id="mname" class="f1" placeholder="メニュー名（例：我が家のカレー）" maxlength="30">
+<input id="mings" class="f2" placeholder="使う食材" maxlength="120">
+<button id="madd">登録</button>
+</div>
+<details style="margin-top:10px"><summary id="msum">登録済みメニューを見る</summary><div id="mlist"></div></details>
+</section>
+</div>
+<div id="shun" hidden>
+<div class="top"><button id="back" class="ghost" type="button">← 戻る</button><h1>旬情報</h1><span class="note" style="margin:0;font-size:.78rem">長押しで並び替え</span></div>
+<div id="tabs" class="tabs"></div>
+<div id="sbody"></div>
+<p class="note">旬の時期は目安です。地域や年によって前後します。</p>
+</div>
+</main>
+<script>
+(function(){
+var K1="tsukaikiri.items",K2="tsukaikiri.menus";
+function load(k){try{return JSON.parse(localStorage.getItem(k)||"[]")||[];}catch(e){return [];}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+var items=load(K1).map(function(i){i.type=i.type||"消費期限";return i;});
+var mine=load(K2);
+var PRESET=[
+["豚汁","豚肉,大根,にんじん,ごぼう,ねぎ"],["肉じゃが","豚肉,じゃがいも,玉ねぎ,にんじん"],
+["カレーライス","鶏肉,じゃがいも,玉ねぎ,にんじん"],["クリームシチュー","鶏肉,じゃがいも,にんじん,玉ねぎ,牛乳"],
+["親子丼","鶏肉,卵,玉ねぎ"],["野菜炒め","キャベツ,もやし,豚肉,にんじん"],["麻婆豆腐","豆腐,豚ひき肉,ねぎ"],
+["豆腐ハンバーグ","豆腐,鶏ひき肉,玉ねぎ"],["豆腐とわかめの味噌汁","豆腐,わかめ,ねぎ"],["ほうれん草のおひたし","ほうれん草,かつお節"],
+["ほうれん草と卵の炒め物","ほうれん草,卵"],["オムレツ","卵,玉ねぎ,ピーマン"],["卵スープ","卵,ねぎ"],["回鍋肉","キャベツ,豚肉,ピーマン"],
+["チャーハン","ご飯,卵,ねぎ,ハム"],["ナポリタン","玉ねぎ,ピーマン,ウインナー"],["きのこのバター醤油炒め","しめじ,えのき,しいたけ"],
+["きのこの味噌汁","しめじ,えのき,油揚げ"],["鶏の照り焼き","鶏肉"],["鮭のムニエル","鮭,玉ねぎ"],["焼きそば","キャベツ,豚肉,もやし,にんじん"],
+["もやしナムル","もやし,にんじん"],["大根と豚肉の煮物","大根,豚肉"],["白菜と豚肉のミルフィーユ鍋","白菜,豚肉"],
+["ポテトサラダ","じゃがいも,きゅうり,ハム,にんじん"],["かぼちゃの煮物","かぼちゃ"],["なすとピーマンの味噌炒め","なす,ピーマン,豚肉"],
+["トマトと卵の炒め物","トマト,卵"],["グラタン","牛乳,玉ねぎ,鶏肉,チーズ"],["厚揚げと小松菜の煮びたし","厚揚げ,小松菜"],
+["鮭のホイル焼き","鮭,しめじ,玉ねぎ"],["鯖の味噌煮","鯖,ねぎ"],["ぶり大根","ぶり,大根"],["鶏そぼろ丼","鶏ひき肉,卵,ねぎ"],
+["鶏の唐揚げ","鶏肉"],["鶏肉と大根の煮物","鶏肉,大根"],["筑前煮","鶏肉,れんこん,にんじん,ごぼう,こんにゃく"],
+["豚の生姜焼き","豚肉,玉ねぎ,しょうが"],["豚キムチ炒め","豚肉,キムチ,ニラ"],["ニラ玉","ニラ,卵"],
+["小松菜と油揚げの味噌汁","小松菜,油揚げ"],["白菜のクリーム煮","白菜,牛乳,ベーコン"],["ロールキャベツ","キャベツ,豚ひき肉,玉ねぎ"],
+["コールスローサラダ","キャベツ,にんじん,とうもろこし"],["かぼちゃサラダ","かぼちゃ,きゅうり,ハム"],["きんぴらごぼう","ごぼう,にんじん"],
+["大根とツナのサラダ","大根,ツナ"],["ミネストローネ","トマト,玉ねぎ,にんじん,ベーコン"],["ラタトゥイユ","なす,ズッキーニ,トマト,玉ねぎ,ピーマン"],
+["麻婆なす","なす,豚ひき肉,ねぎ"],["茶碗蒸し","卵,しいたけ,鶏肉"],["納豆チャーハン","納豆,ご飯,ねぎ,卵"],
+["揚げ出し豆腐","豆腐,ねぎ,大根"],["ブロッコリーとベーコンの炒め物","ブロッコリー,ベーコン"],["厚揚げと豚肉の炒め物","厚揚げ,豚肉,ピーマン"],
+["えのきの肉巻き","えのき,豚肉"],["きのこクリームパスタ","しめじ,牛乳,ベーコン"],["にんじんしりしり","にんじん,卵,ツナ"],
+["もやしと卵の中華スープ","もやし,卵,ねぎ"],["キーマカレー","豚ひき肉,玉ねぎ,トマト"]
+].map(function(p){return{name:p[0],ings:p[1].split(","),preset:true};});
+
+var $=function(id){return document.getElementById(id)};
+function today(){var d=new Date();d.setHours(0,0,0,0);return d;}
+function ymd(d){var m=d.getMonth()+1,dd=d.getDate();return d.getFullYear()+"-"+(m<10?"0":"")+m+"-"+(dd<10?"0":"")+dd;}
+function days(s){var p=s.split("-");return Math.round((new Date(+p[0],+p[1]-1,+p[2])-today())/864e5);}
+function split(s){return s.split(/[,、，\s]+/).map(function(x){return x.trim()}).filter(Boolean);}
+function match(a,b){return a.indexOf(b)>=0||b.indexOf(a)>=0;}
+// 状態: lv 2=赤 1=橙 0=緑
+function status(it){
+var n=days(it.exp),k=it.type==="消費期限";
+if(n<0)return k?{t:"消費期限切れ "+(-n)+"日",lv:3,dead:true}:{t:"賞味期限切れ "+(-n)+"日（状態確認）",lv:3};
+if(n===0)return{t:"今日まで",lv:2};
+if(n===1)return{t:"明日まで",lv:2};
+if(n<=3)return{t:"あと"+n+"日",lv:1};
+return{t:"あと"+n+"日",lv:0};}
+var CLS=["b-ok","b-warn","b-bad","b-exp"];
+function sorted(){return items.slice().sort(function(a,b){return a.exp<b.exp?-1:a.exp>b.exp?1:0;});}
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
+var picked={};
+
+function render(){
+var list=$("list");list.textContent="";var s=sorted();
+if(!s.length)list.appendChild(el("div","empty","まだ食材がありません。上のフォームから登録しましょう。"));
+s.forEach(function(it){
+var st=status(it),row=el("div","item"),info=el("div","info");
+info.appendChild(el("div","n",it.name+(it.qty?"（"+it.qty+"）":"")));
+var d=el("div","d");d.appendChild(el("span","type",it.type));d.appendChild(document.createTextNode(it.exp.replace(/-/g,"/")));
+info.appendChild(d);
+var x=el("button","ghost","使い切った");
+x.onclick=function(){items=items.filter(function(i){return i.id!==it.id});save(K1,items);render();};
+row.appendChild(info);row.appendChild(el("span","badge "+CLS[st.lv],st.t));row.appendChild(x);list.appendChild(row);});
+var red=s.filter(function(i){return status(i).lv===2;}),org=s.filter(function(i){return status(i).lv===1;}),exp=s.filter(function(i){return status(i).lv===3;});
+var a=$("alert");a.className="alert";
+function nm(l){return l.map(function(i){return i.name}).join("、");}
+if(red.length||exp.length){var parts=[];
+if(red.length)parts.push("⚠️ 今日明日が期限："+nm(red)+"。優先して使い切りましょう。");
+if(exp.length)parts.push("🚫 期限切れ："+nm(exp)+"（消費期限切れは食べず、賞味期限切れは状態を確認してください）");
+a.classList.add(red.length?"bad":"exp");a.textContent=parts.join("\n");}
+else if(org.length){a.classList.add("warn");a.textContent="⏰ 早めに使いたい："+nm(org);}
+else if(s.length)a.textContent="✅ 急いで使う食材はありません。";
+else a.textContent="食材を登録すると、使い切りをお知らせします。";
+var ch=$("chips");ch.textContent="";
+s.filter(function(i){return !status(i).dead;}).forEach(function(it){
+if(ch.querySelector('[data-n="'+it.name.replace(/"/g,"")+'"]'))return;
+var c=el("button","chip"+(picked[it.name]?" on":""),it.name);c.type="button";c.setAttribute("data-n",it.name.replace(/"/g,""));
+c.onclick=function(){picked[it.name]=!picked[it.name];$("want").value=Object.keys(picked).filter(function(k){return picked[k]}).join("　");render();};
+ch.appendChild(c);});
+renderMenus();}
+
+function renderMenus(){
+var ml=$("mlist");ml.textContent="";
+$("msum").textContent="登録済みメニューを見る（自分："+mine.length+"件／標準："+PRESET.length+"件）";
+if(!mine.length)ml.appendChild(el("div","empty","自分で登録したメニューはまだありません。"));
+mine.forEach(function(m){
+var row=el("div","item"),info=el("div","info");
+info.appendChild(el("div","n",m.name));info.appendChild(el("div","d",m.ings.join("、")));
+var x=el("button","ghost","削除");
+x.onclick=function(){mine=mine.filter(function(q){return q.id!==m.id});save(K2,mine);renderMenus();};
+row.appendChild(info);row.appendChild(x);ml.appendChild(row);});}
+
+function suggest(){
+var out=$("out");out.textContent="";
+var typed=split($("want").value);
+var pool=items.filter(function(i){return !status(i).dead;}).map(function(i){var st=status(i);return{name:i.name,w:st.lv>=2?4:st.lv===1?3:1,urgent:st.lv>0};});
+var src;
+if(typed.length){src=typed.map(function(t){return{name:t,w:5,urgent:true,typed:true};});
+pool.forEach(function(p){p.w=Math.min(p.w,1);src.push(p);});}
+else src=pool;
+if(!src.length){out.appendChild(el("p","empty","食材を登録するか、使いたい食材を入力してください。"));return;}
+var all=mine.map(function(m){return{name:m.name,ings:m.ings,mine:true};}).concat(PRESET);
+var res=[];
+all.forEach(function(m){
+var score=0,used=[],miss=[];
+m.ings.forEach(function(g){
+var best=null;src.forEach(function(s){if(match(s.name,g)&&(!best||s.w>best.w))best=s;});
+if(best){score+=best.w;used.push({g:g,u:best.urgent});}else miss.push(g);});
+if(used.length&&(!typed.length||used.some(function(u){return typed.some(function(t){return match(t,u.g);});})))
+res.push({m:m,score:score+(m.mine?0.5:0),used:used,miss:miss});});
+res.sort(function(a,b){return b.score-a.score||a.miss.length-b.miss.length;});
+if(!res.length){out.appendChild(el("p","empty","合うメニューが見つかりませんでした。下の「メニューを登録」から追加してみましょう。"));return;}
+res.slice(0,6).forEach(function(r){
+var box=el("div","rec"),t=el("div","t",r.m.name);if(r.m.mine)t.appendChild(el("span","tag","マイメニュー"));
+box.appendChild(t);
+box.appendChild(el("div","use","使える食材："+r.used.map(function(u){return u.g+(u.u?"★":"");}).join("、")));
+box.appendChild(el("div","miss",r.miss.length?"足りない食材："+r.miss.join("、"):"手持ちの食材だけで作れます"));
+out.appendChild(box);});
+out.appendChild(el("p","note","★は期限が近い食材・指定した食材です。消費期限切れの食材は提案から除外しています。"));}
+
+$("date").value=ymd(new Date(Date.now()+3*864e5));
+$("add").onclick=function(){
+var name=$("name").value.trim(),exp=$("date").value;
+if(!name||!exp){$("name").focus();return;}
+items.push({id:Date.now()+Math.random().toString(36).slice(2,6),name:name,exp:exp,type:$("type").value,qty:$("qty").value.trim()});
+save(K1,items);$("name").value="";$("qty").value="";render();$("name").focus();};
+$("name").addEventListener("keydown",function(e){if(e.key==="Enter")$("add").click();});
+$("ask").onclick=suggest;
+$("reset").onclick=function(){picked={};$("want").value="";$("out").textContent="";render();};
+$("madd").onclick=function(){
+var n=$("mname").value.trim(),g=split($("mings").value);
+if(!n||!g.length){(n?$("mings"):$("mname")).focus();return;}
+mine.push({id:Date.now()+Math.random().toString(36).slice(2,6),name:n,ings:g});
+save(K2,mine);$("mname").value="";$("mings").value="";renderMenus();$("msum").parentNode.open=true;};
+var SEASONS=[
+{n:"春",e:"🌸",m:[3,4,5],cats:[
+["野菜",[["🌱","たけのこ","3〜5月","アク抜きして煮物や炊き込みご飯に"],["🥬","春キャベツ","3〜5月","やわらかく生でも甘い"],["🧅","新玉ねぎ","3〜5月","辛みが少なくサラダ向き"],["🌼","菜の花","2〜4月","おひたしや和え物に"],["🥔","新じゃが","4〜6月","皮ごと煮るとおいしい"],["🌿","アスパラガス","4〜6月","炒め物や焼き物に"],["","そら豆","4〜6月","塩ゆでや焼きで"],["","ふき","3〜5月","きゃらぶきや煮物に"]]],
+["魚介",[["🐟","初がつお","4〜6月","たたきや刺身で"],["🐟","真鯛","3〜5月","塩焼きや鯛めしに"],["🐚","あさり","3〜5月","味噌汁や酒蒸しに"],["🐟","しらす","3〜5月","丼やパスタに"],["","さわら","3〜5月","西京焼きや照り焼きに"],["","はまぐり","3〜4月","お吸い物や酒蒸しに"]]],
+["果物",[["🍓","いちご","12〜5月","そのままでもデザートでも"],["🍊","デコポン","2〜4月","甘みが強く皮もむきやすい"],["🍒","さくらんぼ","5〜6月","傷みやすいので早めに"],["","甘夏","3〜5月","さっぱりした酸味"]]]]},
+{n:"夏",e:"☀️",m:[6,7,8],cats:[
+["野菜",[["🍅","トマト","6〜8月","生でも炒めても煮込みでも"],["🥒","きゅうり","6〜8月","酢の物や浅漬けに"],["🍆","なす","6〜9月","焼きなす・味噌炒めに"],["🫑","ピーマン","6〜8月","炒め物や肉詰めに"],["🌽","とうもろこし","6〜8月","茹でてすぐ食べる"],["🥒","ゴーヤ","7〜9月","ゴーヤチャンプルーに"],["🌱","オクラ","7〜9月","ネバネバを和え物やスープに"],["","みょうが","6〜9月","薬味や甘酢漬けに"],["","枝豆","6〜8月","塩ゆででおつまみに"],["","ズッキーニ","6〜8月","炒め物や煮込みに"]]],
+["魚介",[["🐟","あじ","6〜8月","塩焼き・フライ・南蛮漬けに"],["🐟","あゆ","6〜8月","塩焼きが定番"],["🐟","うなぎ","7〜8月","夏のスタミナ食材"],["🐙","たこ","6〜8月","マリネや唐揚げに"],["","すずき","6〜8月","ムニエルや洗いに"],["","あなご","6〜8月","天ぷらや蒲焼きに"]]],
+["果物",[["🍉","すいか","7〜8月","水分補給にぴったり"],["🍑","もも","7〜8月","やさしく扱って冷やして"],["🍈","メロン","6〜8月","食べ頃を見極めて"],["🫐","ブルーベリー","7〜8月","ヨーグルトに添えて"],["","梅","6〜7月","梅シロップや梅干しに"]]]]},
+{n:"秋",e:"🍁",m:[9,10,11],cats:[
+["野菜",[["🍠","さつまいも","9〜11月","焼き芋・天ぷら・煮物に"],["🎃","かぼちゃ","8〜10月","煮物やスープに"],["🥔","里芋","9〜11月","煮っころがしや豚汁に"],["🥕","れんこん","10〜12月","きんぴら・天ぷらに"],["🥕","ごぼう","11〜12月","香りを生かして煮物・汁物に"],["","長いも","10〜12月","とろろやすりおろしで"],["","秋なす","9〜10月","焼きなすや煮びたしに"]]],
+["魚介",[["🐟","さんま","9〜10月","塩焼きで脂をたっぷり"],["🐟","鮭","9〜11月","ホイル焼きや鍋に"],["🐟","さば","9〜11月","味噌煮や塩焼きに"],["🐟","いわし","9〜11月","つみれや蒲焼きに"],["","ししゃも","10〜11月","丸ごと焼いて"],["","戻りがつお","9〜11月","脂がのり刺身やたたきに"]]],
+["果物",[["🍎","りんご","9〜12月","そのままでも加熱しても"],["🍐","梨","8〜10月","シャキシャキ食感"],["🍇","ぶどう","8〜10月","房から外して冷蔵"],["🌰","栗","9〜10月","栗ご飯やおやつに"],["🍊","柿","10〜11月","甘みが強く保存もきく"],["","いちじく","8〜10月","そのままやコンポートに"]]]]},
+{n:"冬",e:"⛄",m:[12,1,2],cats:[
+["野菜",[["🥬","白菜","11〜2月","鍋・煮物・漬物に"],["🥕","大根","11〜2月","おでん・ぶり大根に"],["🥦","ブロッコリー","11〜2月","茹でて副菜やグラタンに"],["🌿","ほうれん草","11〜2月","おひたし・炒め物に"],["🌿","小松菜","12〜2月","味噌汁や煮びたしに"],["🧅","長ねぎ","11〜2月","鍋や薬味に"],["","春菊","11〜2月","鍋やおひたしに"],["","かぶ","10〜2月","煮物やサラダに"]]],
+["魚介",[["🐟","ぶり","12〜2月","照り焼き・ぶり大根に"],["🦀","かに","11〜2月","鍋や焼きがにで"],["🐟","たら","12〜2月","鍋やムニエルに"],["🦪","牡蠣","12〜2月","フライ・鍋・グラタンに"],["","ひらめ","12〜2月","刺身や煮付けに"],["","ほたて","12〜3月","バター焼きや鍋に"]]],
+["果物",[["🍊","みかん","11〜1月","こたつのお供に"],["🍋","ゆず","11〜12月","皮も果汁も料理に"],["🍊","きんかん","12〜2月","皮ごと甘露煮に"],["🍎","りんご（ふじ）","11〜2月","蜜入りは甘い"],["","ポンカン","1〜2月","皮がむきやすく甘い"]]]]},
+{n:"年中",e:"",m:[],cats:[
+["野菜",[["","玉ねぎ","通年","常温保存できて万能"],["","じゃがいも","通年","煮物やカレーに"],["","にんじん","通年","炒め物・煮物・サラダに"],["","キャベツ","通年","炒め物・サラダ・スープに"],["","もやし","通年","安価で炒め物やナムルに"],["","小ねぎ","通年","薬味や汁物に"],["","豆苗","通年","再生栄培もできる"],["","にら","通年","炒め物や卵とじに"]]],
+["魚介",[["","鮭","通年","切り身がいつでも手に入る"],["","さば","通年","塩焼きや味噌煮に"],["","えび","通年","冷凍が使いやすい"],["","いか","通年","炒め物や煮物に"],["","ツナ缶","通年","サラダやチャーハンに"],["","さば缶","通年","味噌汁やパスタに"]]],
+["果物",[["","バナナ","通年","朝食やおやつに"],["","レモン","通年","料理や飲み物に"],["","キウイ","通年","冷蔵で長持ち"],["","アボカド","通年","サラダや丼に"]]]]}
+];
+var DISHES=[
+[["筍ごはん","たけのこ・米・油揚げ"],["鯛めし","鯛・米"],["あさりの酒蒸し","あさり・酒・ねぎ"],["菜の花のからし和え","菜の花・からし"],["新玉ねぎのサラダ","新玉ねぎ・かつお節"],["ちらし寿司","酢飯・卵・えび"],["山菜の天ぷら","たらの芽・こしあぶら等"]],
+[["そうめん","そうめん・薬味・めんつゆ"],["冷やし中華","中華麺・きゅうり・卵・ハム"],["冷しゃぶ","豚肉・トマト・きゅうり"],["夏野菜カレー","なす・ズッキーニ・トマト"],["ゴーヤチャンプルー","ゴーヤ・豆腐・卵・豚肉"],["なすの揚げ浸し","なす・めんつゆ・生姜"],["うな重","うなぎ・ご飯"],["あじの南蛮漬け","あじ・玉ねぎ・にんじん"]],
+[["さんまの塩焼き","さんま・大根おろし"],["栗ごはん","栗・米"],["きのこの炊き込みご飯","きのこ・米・油揚げ"],["芋煮","里芋・牛肉・ねぎ・こんにゃく"],["さつまいもの天ぷら","さつまいも・天ぷら粉"],["かぼちゃの煮物","かぼちゃ・醤油・みりん"],["鮭のちゃんちゃん焼き","鮭・キャベツ・味噌"],["いわしのつみれ汁","いわし・ねぎ・生姜"]],
+[["おでん","大根・卵・こんにゃく・練り物"],["寄せ鍋","白菜・鱈・鶏肉・豆腐"],["ぶり大根","ぶり・大根"],["湯豆腐","豆腐・昆布・ねぎ"],["クリームシチュー","鶏肉・じゃがいも・牛乳"],["牡蠣フライ","牡蠣・パン粉"],["かぶと鶏肉の煮物","かぶ・鶏肉"],["年越しそば","そば・ねぎ・かまぼこ"]],
+[["味噌汁","豆腐・わかめ・ねぎ"],["親子丼","鶏肉・卵・玉ねぎ"],["カレーライス","じゃがいも・にんじん・玉ねぎ"],["野菜炒め","キャベツ・にんじん・豚肉"],["肉じゃが","牛肉・じゃがいも・玉ねぎ"],["魚の塩焼き","鮭・さばなど"],["卵焼き","卵・だし"],["チャーハン","ご飯・卵・ねぎ"],["ハンバーグ","ひき肉・玉ねぎ"]]
+];
+var dt=new Date(),md=(dt.getMonth()+1)*100+dt.getDate(),cur=(md>=1107||md<204)?3:md>=807?2:md>=505?1:0;
+try{var ls=localStorage.getItem("tsukaikiri.season");if(ls!==null&&SEASONS[+ls])cur=+ls;}catch(e){}
+var SK="tsukaikiri.shun",SS={add:{},ord:{}};
+try{var raw=JSON.parse(localStorage.getItem(SK)||"null");if(raw&&raw.add&&raw.ord)SS=raw;}catch(e){}
+function saveSS(){try{localStorage.setItem(SK,JSON.stringify(SS));}catch(e){}}
+function redraw(fck){var y=window.scrollY;drawSeason(cur,fck);window.scrollTo(0,y);}
+function cardsFor(ck,base){
+var all=base.concat((SS.add[ck]||[]).map(function(a){return{k:"u:"+a.id,name:a.name,mo:a.mo,ds:a.ds,user:true,id:a.id};}));
+var ord=SS.ord[ck]||[];
+return all.map(function(it,ix){var p=ord.indexOf(it.k);return{it:it,p:p<0?(it.user?-1e6-ix:1e6+ix):p};}).sort(function(a,b){return a.p-b.p;}).map(function(x){return x.it;});}
+function openForm(ck,isDish){
+var ov=el("div","ov"),bx=el("div","bx");
+bx.appendChild(el("h2",null,"カードを追加"));
+var n=el("input"),m=el("input"),d=el("input");
+n.placeholder=isDish?"料理名":"食材名";n.maxLength=30;
+m.placeholder="旬の時期（任意）";m.maxLength=15;
+d.placeholder=isDish?"主な食材（任意）":"ひと言（任意）";d.maxLength=30;
+bx.appendChild(n);if(!isDish)bx.appendChild(m);bx.appendChild(d);
+var r=el("div","row");r.style.justifyContent="flex-end";
+var c=el("button","ghost","キャンセル"),o=el("button",null,"追加");c.type="button";o.type="button";
+function close(){if(ov.parentNode)document.body.removeChild(ov);}
+c.onclick=close;ov.onclick=function(e){if(e.target===ov)close();};
+o.onclick=function(){var nm=n.value.trim();if(!nm){n.focus();return;}
+(SS.add[ck]=SS.add[ck]||[]).push({id:Date.now()+Math.random().toString(36).slice(2,5),name:nm,mo:isDish?"":m.value.trim(),ds:d.value.trim()});
+saveSS();close();redraw();};
+r.appendChild(c);r.appendChild(o);bx.appendChild(r);ov.appendChild(bx);document.body.appendChild(ov);n.focus();}
+function sortable(hs,ck){
+var timer=null,drag=null,sx=0,sy=0,fx=0,iv=null,pid=0;
+function cards(){return Array.prototype.filter.call(hs.children,function(c){return c.hasAttribute("data-k");});}
+function place(){
+var hr=hs.getBoundingClientRect(),left=fx-drag.grab,w=drag.el.offsetWidth,center=left+w/2;
+var others=cards().filter(function(c){return c!==drag.el;}),idx=0;
+others.forEach(function(c){if(hr.left+c.offsetLeft-hs.scrollLeft+c.offsetWidth/2<center)idx++;});
+var ref=idx<others.length?others[idx]:(others.length?others[others.length-1].nextSibling:drag.el.nextSibling);
+if(drag.el.nextSibling!==ref)hs.insertBefore(drag.el,ref);
+var t=left-hr.left-drag.el.offsetLeft+hs.scrollLeft;
+drag.el.style.transform="translateX("+t+"px) scale(1.06)";}
+function start(card){
+timer=null;drag={el:card,grab:fx-card.getBoundingClientRect().left};
+card.classList.add("lift");hs.classList.add("dragging");
+try{card.setPointerCapture(pid);}catch(e){}
+try{if(navigator.vibrate)navigator.vibrate(15);}catch(e){}
+iv=setInterval(function(){var hr=hs.getBoundingClientRect();if(fx<hr.left+36)hs.scrollLeft-=8;else if(fx>hr.right-36)hs.scrollLeft+=8;place();},16);
+place();}
+function end(){
+clearTimeout(timer);timer=null;
+if(drag){clearInterval(iv);drag.el.classList.remove("lift");drag.el.style.transform="";hs.classList.remove("dragging");
+SS.ord[ck]=cards().map(function(c){return c.getAttribute("data-k");});saveSS();drag=null;}}
+hs.addEventListener("pointerdown",function(e){
+if(e.button>0)return;
+var card=e.target.closest(".sc[data-k]");if(!card||e.target.closest("button"))return;
+sx=fx=e.clientX;sy=e.clientY;pid=e.pointerId;
+clearTimeout(timer);timer=setTimeout(function(){start(card);},380);});
+hs.addEventListener("pointermove",function(e){
+if(drag){fx=e.clientX;place();e.preventDefault();}
+else if(timer&&(Math.abs(e.clientX-sx)>8||Math.abs(e.clientY-sy)>8)){clearTimeout(timer);timer=null;}});
+hs.addEventListener("pointerup",end);hs.addEventListener("pointercancel",end);
+hs.addEventListener("touchmove",function(e){if(drag)e.preventDefault();},{passive:false});
+hs.addEventListener("contextmenu",function(e){e.preventDefault();});}
+function buildRow(ck,base,isDish){
+var hs=el("div","hs");hs.setAttribute("data-ck",ck);hs.style.setProperty("--ch",(HT[ck.split("|")[1]]||0)+"px");
+cardsFor(ck,base).forEach(function(it){
+var d=el("div","sc");d.setAttribute("data-k",it.k);
+d.appendChild(el("div","nm",it.name));
+if(it.mo)d.appendChild(el("div","mo",it.mo));
+if(it.ds)d.appendChild(el("div","ds",it.ds));
+if(it.user){var x=el("button","del","×");x.type="button";x.setAttribute("aria-label","削除");
+x.onclick=function(){SS.add[ck]=(SS.add[ck]||[]).filter(function(a){return a.id!==it.id;});saveSS();redraw();};d.appendChild(x);}
+hs.appendChild(d);});
+var ad=el("button","sc add","＋");ad.type="button";ad.setAttribute("aria-label","カードを追加");
+ad.onclick=function(){openForm(ck,isDish);};
+{var tw=$("tabs").firstChild?$("tabs").firstChild.offsetWidth:0;ad.style.flex="0 0 "+Math.round((tw||150)/2)+"px";ad.style.minWidth="0";ad.style.padding="0";hs.insertBefore(ad,hs.firstChild);}
+sortable(hs,ck);return hs;}
+var HT={};
+function measure(){
+var H={},box=el("div",null);
+box.style.cssText="position:absolute;left:-9999px;top:0;visibility:hidden;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;width:3000px";
+document.body.appendChild(box);
+SEASONS.forEach(function(s,i){
+var sets=[["料理",(DISHES[i]||[]).map(function(f){return{k:"b:"+f[0],name:f[0],mo:"",ds:f[1]};})]].concat(s.cats.map(function(c){return[c[0],c[1].map(function(f){return{k:"b:"+f[1],name:f[1],mo:f[2],ds:f[3]};})];}));
+sets.forEach(function(p){cardsFor(i+"|"+p[0],p[1]).forEach(function(it){
+var d=el("div","sc");d.appendChild(el("div","nm",it.name));
+if(it.mo)d.appendChild(el("div","mo",it.mo));if(it.ds)d.appendChild(el("div","ds",it.ds));
+box.appendChild(d);H[p[0]]=Math.max(H[p[0]]||0,Math.ceil(d.getBoundingClientRect().height));});});});
+document.body.removeChild(box);return H;}
+function drawSeason(i,fck){
+HT=measure();
+cur=i;try{localStorage.setItem("tsukaikiri.season",String(i));}catch(e){}var tb=$("tabs");tb.textContent="";
+[4,0,1,2,3].forEach(function(j){var s=SEASONS[j];var b=el("button","tab"+(j===i?" on":""),s.n);b.type="button";b.onclick=function(){drawSeason(j);};tb.appendChild(b);});
+var body=$("sbody");body.textContent="";
+body.appendChild(el("h3","cat","よく食べられる料理"));
+body.appendChild(buildRow(i+"|料理",(DISHES[i]||[]).map(function(f){return{k:"b:"+f[0],name:f[0],mo:"",ds:f[1]};}),true));
+SEASONS[i].cats.forEach(function(c){
+body.appendChild(el("h3","cat",c[0]));
+body.appendChild(buildRow(i+"|"+c[0],c[1].map(function(f){return{k:"b:"+f[1],name:f[1],mo:f[2],ds:f[3]};}),false));});
+if(fck){var r=body.querySelector('[data-ck="'+fck+'"]');if(r)r.scrollLeft=r.scrollWidth;}}
+function route(){var on=location.hash==="#shun";$("home").hidden=on;$("shun").hidden=!on;if(on){drawSeason(cur<0?0:cur);window.scrollTo(0,0);}}
+$("goShun").onclick=function(){location.hash="shun";};
+$("back").onclick=function(){location.hash="";};
+window.addEventListener("hashchange",route);
+render();route();
+})();
+</script>
+</body>
+</html>
